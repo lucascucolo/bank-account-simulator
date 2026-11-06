@@ -37,7 +37,7 @@ docker compose up --build -d
 | Serviço | URL | Descrição |
 |---|---|---|
 | **Painel da Aplicação Bancária** | [http://localhost:3000](http://localhost:3000) | Interface web do banco, simulador de incidentes, controle do gerador de carga e Assistente SRE IA |
-| **Arquitetura & Blueprint Visual** | [http://localhost:3000/#arch](http://localhost:3000/#arch) | Diagramas interativos com Zoom/Pan: Fluxo da Aplicação, Stack de Telemetria e Comparativo Grafana Cloud |
+| **Arquitetura & Visual** | [http://localhost:3000/#arch](http://localhost:3000/#arch) | Diagramas interativos com Zoom/Pan: Fluxo da Aplicação, Stack de Telemetria e Comparativo Grafana Cloud |
 | **Grafana** | [http://localhost:3003](http://localhost:3003) | Dashboards provisionados automaticamente (Sem senha / Admin anônimo ativo) |
 | **Dashboard RED & Domínio** | [http://localhost:3003/d/bank-red-observability](http://localhost:3003/d/bank-red-observability) | Apdex, SLO (99.5%), Error Budget, Rate, Errors (4xx/5xx/Total), Duration P95 e Exemplars |
 | **Dashboard de Infraestrutura & Runtime** | [http://localhost:3003/d/bank-infra-observability](http://localhost:3003/d/bank-infra-observability) | Memória RAM (RSS/Heap), Event Loop Lag, Saúde do OTel Collector e Séries ativas no TSDB |
