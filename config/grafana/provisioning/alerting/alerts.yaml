@@ -1,0 +1,257 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: bank-alerts
+    folder: Banking Alerts
+    interval: 10s
+    rules:
+      # =========================================================================
+      # ALERTAS: ACCOUNT-API (Gateway de Borda)
+      # =========================================================================
+      - uid: bank_alert_5xx_account_api
+        title: "Crítico: Taxa de Erros 5xx no Gateway (account-api)"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: sum(rate(traces_spanmetrics_calls_total{service_name="account-api", status_code="STATUS_CODE_ERROR", span_kind="SPAN_KIND_SERVER"}[1m])) or vector(0)
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              type: reduce
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B > 0.3
+              type: math
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 10s
+        annotations:
+          summary: "Erros 5xx excederam 0.3 req/s no Gateway (account-api)"
+          description: "O serviço account-api está retornando 5xx diretamente para clientes ou falhando na camada de borda."
+        labels:
+          severity: critical
+          service: account-api
+          team: sre-core
+
+      - uid: bank_alert_apdex_account_api
+        title: "Atenção: Apdex Degradado no Gateway (account-api < 0.75)"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: clamp_min(clamp_max((0.6 * clamp_min(1 - ((sum(rate(traces_spanmetrics_calls_total{service_name="account-api", status_code="STATUS_CODE_ERROR", span_kind="SPAN_KIND_SERVER"}[1m])) or vector(0)) / clamp_min(sum(rate(traces_spanmetrics_calls_total{service_name="account-api", span_kind="SPAN_KIND_SERVER"}[1m])), 0.0001)), 0)) + (0.4 * clamp_min(1 - (histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_duration_milliseconds_bucket{service_name="account-api", span_kind="SPAN_KIND_SERVER"}[1m]))) / 1000), 0)), 1), 0)
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              type: reduce
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B < 0.75
+              type: math
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 10s
+        annotations:
+          summary: "Apdex da account-api abaixo de 0.75"
+          description: "Degradação de experiência na camada de entrada (latência ou erros na account-api)."
+        labels:
+          severity: warning
+          service: account-api
+          team: sre-core
+
+      # =========================================================================
+      # ALERTAS: LEDGER-SERVICE (Motor Contábil & Banco)
+      # =========================================================================
+      - uid: bank_alert_5xx_ledger_service
+        title: "Crítico: Taxa de Erros 5xx no Motor Contábil (ledger-service)"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: sum(rate(traces_spanmetrics_calls_total{service_name="ledger-service", status_code="STATUS_CODE_ERROR", span_kind="SPAN_KIND_SERVER"}[1m])) or vector(0)
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              type: reduce
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B > 0.3
+              type: math
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 10s
+        annotations:
+          summary: "Erros 5xx excederam 0.3 req/s no ledger-service"
+          description: "O motor contábil está enfrentando falhas graves no banco de dados PostgreSQL ou regras transacionais."
+        labels:
+          severity: critical
+          service: ledger-service
+          team: sre-core
+
+      - uid: bank_alert_latency_ledger_service
+        title: "Atenção: Latência Elevada no Motor Contábil (ledger-service P95 > 500ms)"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_duration_milliseconds_bucket{service_name="ledger-service", span_kind="SPAN_KIND_SERVER"}[1m]))) or vector(0)
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              type: reduce
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B > 500
+              type: math
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 10s
+        annotations:
+          summary: "Latência P95 do ledger-service excedeu 500ms"
+          description: "Gargalo síncrono ou lock de transação detectado no processamento contábil."
+        labels:
+          severity: warning
+          service: ledger-service
+          team: sre-core
+
+      - uid: bank_alert_apdex_ledger_service
+        title: "Atenção: Apdex Degradado no Motor Contábil (ledger-service < 0.75)"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: clamp_min(clamp_max((0.6 * clamp_min(1 - ((sum(rate(traces_spanmetrics_calls_total{service_name="ledger-service", status_code="STATUS_CODE_ERROR", span_kind="SPAN_KIND_SERVER"}[1m])) or vector(0)) / clamp_min(sum(rate(traces_spanmetrics_calls_total{service_name="ledger-service", span_kind="SPAN_KIND_SERVER"}[1m])), 0.0001)), 0)) + (0.4 * clamp_min(1 - (histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_duration_milliseconds_bucket{service_name="ledger-service", span_kind="SPAN_KIND_SERVER"}[1m]))) / 1000), 0)), 1), 0)
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              type: reduce
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: __expr__
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B < 0.75
+              type: math
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 10s
+        annotations:
+          summary: "Apdex do ledger-service abaixo de 0.75"
+          description: "Degradação crítica de qualidade do ledger-service decorrente de latência ou erros 5xx."
+        labels:
+          severity: warning
+          service: ledger-service
+          team: sre-core

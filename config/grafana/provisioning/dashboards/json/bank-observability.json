@@ -1,0 +1,796 @@
+{
+  "uid": "bank-red-observability",
+  "title": "Bank Account Simulator \u2014 RED & Domain Observability",
+  "tags": [
+    "opentelemetry",
+    "red",
+    "bank",
+    "observability"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 7,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Servi\u00e7o",
+        "type": "custom",
+        "query": "account-api,ledger-service",
+        "includeAll": true,
+        "allValue": ".+",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "operation",
+        "label": "Opera\u00e7\u00e3o",
+        "type": "custom",
+        "query": "deposit,withdraw,statement",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "search",
+        "label": "\ud83d\udd0e Buscar nos Logs (ex: saldo, erro, trace_id)",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "\ud83d\udda5\ufe0f Abrir Dashboard de Infraestrutura & Containers",
+      "type": "link",
+      "icon": "cloud",
+      "targetBlank": false,
+      "url": "/d/bank-infra-observability"
+    },
+    {
+      "title": "\ud83d\udd0d Abrir Tempo (Traces)",
+      "type": "link",
+      "icon": "bolt",
+      "targetBlank": true,
+      "url": "/explore?left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceqlSearch%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+    },
+    {
+      "title": "\ud83d\udcdc Abrir Loki (Logs JSON)",
+      "type": "link",
+      "icon": "gf-logs",
+      "targetBlank": true,
+      "url": "/explore?left=%7B%22datasource%22:%22loki%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bservice_name%3D~%5C%22.%2B%5C%22%7D%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+    }
+  ],
+  "panels": [
+    {
+      "id": 11,
+      "title": "\ud83c\udfaf Apdex Atual por Servi\u00e7o (Tempo Real)",
+      "description": "Veloc\u00edmetro de Sa\u00fade em Tempo Real (0.00 a 1.00) calculado independentemente para cada microsservi\u00e7o com base em Erros 5xx e Lat\u00eancia P95 do pr\u00f3prio servi\u00e7o. Verde >= 0.90 | Laranja 0.70-0.89 | Vermelho < 0.70.",
+      "type": "gauge",
+      "gridPos": {
+        "h": 7,
+        "w": 5,
+        "x": 0,
+        "y": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "clamp_min(clamp_max((0.6 * clamp_min(1 - ((sum by (service_name) (rate(traces_spanmetrics_calls_total{status_code=\"STATUS_CODE_ERROR\", span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m])) or (0 * sum by (service_name) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m])))) / clamp_min(sum by (service_name) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m])), 0.0001)), 0)) + (0.4 * clamp_min(1 - (histogram_quantile(0.95, sum by (le, service_name) (rate(traces_spanmetrics_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m]))) / 1000), 0)), 1), 0)",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "title": "\ud83c\udfaf SLO (99.5%) & Error Budget Restante",
+      "description": "Monitoramento de Service Level Objective (Meta 99.5% de disponibilidade) e Or\u00e7amento de Erro (Error Budget) restante baseado exclusivamente na taxa de falhas 5xx.",
+      "type": "gauge",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 5,
+        "y": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "clamp_min(100 * (1 - ((sum(rate(traces_spanmetrics_calls_total{status_code=\"STATUS_CODE_ERROR\", span_kind=\"SPAN_KIND_SERVER\"}[5m])) or vector(0)) / clamp_min(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\"}[5m])), 0.0001))), 0)",
+          "legendFormat": "Disponibilidade SLI %"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "clamp_max(clamp_min(((0.005 - (((sum(rate(traces_spanmetrics_calls_total{status_code=\"STATUS_CODE_ERROR\", span_kind=\"SPAN_KIND_SERVER\"}[5m])) or vector(0)) / clamp_min(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\"}[5m])), 0.0001)))) / 0.005) * 100, 0), 100)",
+          "legendFormat": "Error Budget Restante %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 30
+              },
+              {
+                "color": "green",
+                "value": 70
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Disponibilidade SLI %"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 95
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 99
+                    },
+                    {
+                      "color": "green",
+                      "value": 99.5
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "title": "\u2764\ufe0f Apdex \u2014 Hist\u00f3rico Cont\u00ednuo por Servi\u00e7o (0 a 1 | Erros 5xx + Lat\u00eancia P95)",
+      "description": "Hist\u00f3rico de sa\u00fade cont\u00ednua por microsservi\u00e7o (account-api e ledger-service).",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 13,
+        "x": 11,
+        "y": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "clamp_min(clamp_max((0.6 * clamp_min(1 - ((sum by (service_name) (rate(traces_spanmetrics_calls_total{status_code=\"STATUS_CODE_ERROR\", span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m])) or (0 * sum by (service_name) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m])))) / clamp_min(sum by (service_name) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m])), 0.0001)), 0)) + (0.4 * clamp_min(1 - (histogram_quantile(0.95, sum by (le, service_name) (rate(traces_spanmetrics_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m]))) / 1000), 0)), 1), 0)",
+          "legendFormat": "Apdex: {{service_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 18,
+            "gradientMode": "opacity",
+            "spanNulls": true,
+            "showPoints": "never",
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "links": [
+            {
+              "title": "\ud83d\udd25 Investigar Degrada\u00e7\u00e3o de ${__field.labels.service_name} no Tempo",
+              "targetBlank": true,
+              "url": "/explore?left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceql%22,%22query%22:%22%7Bresource.service.name%3D%5C%22${__field.labels.service_name}%5C%22%7D%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 1,
+      "title": "\ud83d\udcca R \u2014 Request Rate (Req/s por Servi\u00e7o)",
+      "description": "Taxa de requisi\u00e7\u00f5es por segundo (RPS) recebidas por cada microservi\u00e7o. Arraste o mouse sobre um per\u00edodo para filtrar todos os pain\u00e9is e logs!",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 17
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service_name) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m]))",
+          "legendFormat": "{{service_name}}",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 15,
+            "showPoints": "always"
+          },
+          "links": [
+            {
+              "title": "\ud83d\udd0e Investigar Traces de ${__field.labels.service_name} no Tempo",
+              "targetBlank": true,
+              "url": "/explore?left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceql%22,%22query%22:%22%7Bresource.service.name%3D%5C%22${__field.labels.service_name}%5C%22%7D%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+            },
+            {
+              "title": "\ud83c\udfaf Filtrar este Dashboard apenas para ${__field.labels.service_name}",
+              "targetBlank": false,
+              "url": "/d/bank-red-observability?var-service=${__field.labels.service_name}&from=${__from}&to=${__to}"
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "\ud83d\udea8 E \u2014 Error Rate por Servi\u00e7o (Fam\u00edlias 4xx, 5xx e Total)",
+      "description": "Taxa de erros discriminada por microsservi\u00e7o (account-api vs ledger-service), separando Erros 4xx (Regra de Neg\u00f3cio: Saldo Insuficiente) de Erros 5xx (Falhas Cr\u00edticas de Servidor/Banco). Clique para abrir Traces ou Logs!",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 17
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service_name) (rate(traces_spanmetrics_calls_total{status_code=\"STATUS_CODE_ERROR\", span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m]))",
+          "legendFormat": "\ud83d\udd25 5xx \u2014 {{service_name}}",
+          "exemplar": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service_name) (rate(traces_spanmetrics_calls_total{http_status_code=~\"4..\", span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m]))",
+          "legendFormat": "\u26a0\ufe0f 4xx \u2014 {{service_name}}",
+          "exemplar": true
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service_name) (rate(traces_spanmetrics_calls_total{http_status_code=~\"[45]..\", span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m]))",
+          "legendFormat": "\u2211 Total \u2014 {{service_name}}",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 15,
+            "showPoints": "always"
+          },
+          "links": [
+            {
+              "title": "\ud83d\udd25 Ver Traces com ERRO no Tempo",
+              "targetBlank": true,
+              "url": "/explore?left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceql%22,%22query%22:%22%7Bstatus%3Derror%7D%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+            },
+            {
+              "title": "\ud83d\udcdc Ver Logs de ERRO/WARN no Loki",
+              "targetBlank": true,
+              "url": "/explore?left=%7B%22datasource%22:%22loki%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bservice_name%3D~%5C%22.%2B%5C%22%7D%20%7C~%20%5C%22level%5C%22:(40%7C50)%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "\ud83d\udd25 5xx \u2014 account-api"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "\ud83d\udd25 5xx \u2014 ledger-service"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "dark-red"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "\u26a0\ufe0f 4xx \u2014 account-api"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "\u26a0\ufe0f 4xx \u2014 ledger-service"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "\u2211 Total \u2014 account-api"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    8,
+                    8
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "\u2211 Total \u2014 ledger-service"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    8,
+                    8
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "\u23f1\ufe0f D \u2014 Duration P95 (Lat\u00eancia P95 por Servi\u00e7o + Exemplars)",
+      "description": "Percentil 95 de lat\u00eancia (ms) por servi\u00e7o. Os diamantes no gr\u00e1fico s\u00e3o Exemplars contendo o trace_id exato da requisi\u00e7\u00e3o!",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 17
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(traces_spanmetrics_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", service_name=~\"$service\"}[1m])))",
+          "legendFormat": "P95 {{service_name}}",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 15,
+            "showPoints": "always"
+          },
+          "links": [
+            {
+              "title": "\ud83d\udc22 Investigar Traces Lentos de ${__field.labels.service_name} no Tempo",
+              "targetBlank": true,
+              "url": "/explore?left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceql%22,%22query%22:%22%7Bresource.service.name%3D%5C%22${__field.labels.service_name}%5C%22%20%26%26%20duration%3E50ms%7D%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "\ud83c\udfe6 M\u00e9trica de Dom\u00ednio: Taxa de Transa\u00e7\u00f5es por Tipo (deposit, withdraw, statement)",
+      "description": "M\u00e9trica de neg\u00f3cio customizada (bank_transactions_total) agrupada por operation_type e status. Clique em uma barra para filtrar o Dashboard ou abrir no Tempo!",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (operation_type, status) (rate(bank_transactions_total{operation_type=~\"$operation\"}[1m]))",
+          "legendFormat": "{{operation_type}} ({{status}})",
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "links": [
+            {
+              "title": "\ud83d\udd0e Ver Traces da opera\u00e7\u00e3o '${__field.labels.operation_type}' no Tempo",
+              "targetBlank": true,
+              "url": "/explore?left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceql%22,%22query%22:%22%7Bspan.operation.type%3D%5C%22${__field.labels.operation_type}%5C%22%7D%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+            },
+            {
+              "title": "\ud83c\udfaf Filtrar Logs deste Dashboard apenas para '${__field.labels.operation_type}'",
+              "targetBlank": false,
+              "url": "/d/bank-red-observability?var-operation=${__field.labels.operation_type}&from=${__from}&to=${__to}"
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "\ud83d\udd22 Quantidade de Requisi\u00e7\u00f5es Executadas por Tipo (Contador Inteiro)",
+      "description": "Total exato e acumulativo de vezes que cada opera\u00e7\u00e3o (deposit, withdraw, statement) foi chamada na API.",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (operation_type) (max_over_time(bank_transactions_total{operation_type=~\"$operation\"}[5m]))",
+          "legendFormat": "{{operation_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "links": [
+            {
+              "title": "\ud83d\udd0e Abrir Traces de '${__field.labels.operation_type}' no Tempo",
+              "targetBlank": true,
+              "url": "/explore?left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceql%22,%22query%22:%22%7Bspan.operation.type%3D%5C%22${__field.labels.operation_type}%5C%22%7D%22%7D%5D,%22range%22:%7B%22from%22:%22${__from}%22,%22to%22:%22${__to}%22%7D%7D"
+            },
+            {
+              "title": "\ud83c\udfaf Filtrar Logs deste Dashboard apenas para '${__field.labels.operation_type}'",
+              "targetBlank": false,
+              "url": "/d/bank-red-observability?var-operation=${__field.labels.operation_type}&from=${__from}&to=${__to}"
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "\ud83d\udea8 Logs de Alerta & Erro (WARN / ERROR) \u2014 Falhas de Saldo ou Banco!",
+      "description": "Exibe APENAS logs com n\u00edvel WARN (40, ex: Saldo insuficiente) ou ERROR (50, ex: Queda do Postgres). Expanda uma linha para clicar no bot\u00e3o 'Tempo'!",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service_name=~\"$service\"} |~ \"\\\"level\\\":(40|50)\" |~ \"\\\"operation\\\":\\\"($operation)\\\"\" |~ \"(?i)$search\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "prettifyLogMessage": false
+      }
+    },
+    {
+      "id": 7,
+      "title": "\ud83d\udcdc Todos os Logs Filtr\u00e1veis (Sucesso + Erro) \u2014 Use os filtros no topo!",
+      "description": "Exibe todos os logs filtrados por Servi\u00e7o, Opera\u00e7\u00e3o e Busca Livre no topo da p\u00e1gina. Expanda qualquer log para pular para o Trace no Tempo.",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service_name=~\"$service\"} |~ \"\\\"operation\\\":\\\"($operation)\\\"\" |~ \"(?i)$search\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "prettifyLogMessage": false
+      }
+    }
+  ]
+}

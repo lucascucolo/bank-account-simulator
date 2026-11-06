@@ -1,0 +1,278 @@
+{
+  "uid": "bank-infra-observability",
+  "title": "Bank Account Simulator — Infrastructure, Containers & Telemetry Pipeline",
+  "tags": ["infrastructure", "nodejs", "docker", "opentelemetry", "prometheus"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "🏦 Voltar para Dashboard de Aplicação (RED & Apdex)",
+      "type": "link",
+      "icon": "apps",
+      "targetBlank": false,
+      "url": "/d/bank-red-observability"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "🟢 Status dos Componentes de Infraestrutura (Targets UP / DOWN)",
+      "description": "Monitoramento de disponibilidade dos serviços da stack (OTel Collector, Prometheus, Loki, Tempo).",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "up",
+          "legendFormat": "{{job}} ({{instance}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN ❌", "color": "red" },
+                "1": { "text": "UP 🟢", "color": "green" }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "🧠 Uso de Memória RAM Física (RSS) — Containers Node.js (account-api & ledger-service)",
+      "description": "Memória Resident Set Size (RSS) alocada por cada microserviço Node.js.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "max by (service_name) (nodejs_memory_rss_bytes)",
+          "legendFormat": "RSS: {{service_name}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "max by (service_name) (nodejs_memory_heap_used_bytes)",
+          "legendFormat": "V8 Heap: {{service_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 15,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "⚡ Node.js Event Loop Lag (Saúde da Thread Assíncrona)",
+      "description": "Atraso médio do Event Loop do Node.js em milissegundos. Acima de 50ms indica bloqueio de CPU na thread principal.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "max by (service_name) (nodejs_eventloop_lag_ms)",
+          "legendFormat": "Event Loop Lag: {{service_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "⏱️ Uptime dos Containers da Aplicação (account-api & ledger-service)",
+      "description": "Tempo contínuo em execução sem reinicializações (restarts) dos containers Node.js.",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "max by (service_name) (nodejs_uptime_seconds)",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "orange", "value": null },
+              { "color": "green", "value": 30 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "🖥️ Uso de CPU dos Containers da Stack de Observabilidade (Prometheus, Loki, Tempo, Collector)",
+      "description": "Taxa de consumo de CPU (cores/s) de cada container de infraestrutura.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(process_cpu_seconds_total[1m])",
+          "legendFormat": "CPU: {{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 15,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "💾 Uso de Memória RAM dos Containers da Stack (Prometheus, Loki, Tempo, Collector)",
+      "description": "Memória física (Resident Memory) consumida por cada backend da stack de telemetria.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "process_resident_memory_bytes",
+          "legendFormat": "RAM: {{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 15,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "📡 Saúde do Pipeline OpenTelemetry Collector (Throughput de Spans, Métricas e Logs)",
+      "description": "Taxa de itens processados e exportados por segundo pelo OTel Collector vs. falhas de envio.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (exporter) (rate(otelcol_exporter_sent_spans[1m]))",
+          "legendFormat": "Spans Enviados ({{exporter}})"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (exporter) (rate(otelcol_exporter_sent_log_records[1m]))",
+          "legendFormat": "Logs Enviados ({{exporter}})"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (exporter) (rate(otelcol_exporter_send_failed_spans[1m]))",
+          "legendFormat": "❌ Falha de Envio Spans ({{exporter}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 15,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "title": "📈 Cardinalidade Ativa no Prometheus TSDB (Active Time Series)",
+      "description": "Total de séries temporais ativas na memória (Head Block) do Prometheus — fundamental para governança de cardinalidade (Etapa 6).",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "prometheus_tsdb_head_series",
+          "legendFormat": "Séries Ativas no TSDB (Cardinalidade)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    }
+  ]
+}
+

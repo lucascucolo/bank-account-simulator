@@ -1,0 +1,93 @@
+# 1. RECEIVERS: Recebe Traces, Métricas e Logs via OTLP (gRPC 4317 e HTTP 4318)
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+# 2. PROCESSORS: Agrupa em lotes e regras de amostragem inteligente
+processors:
+  batch:
+    timeout: 1s
+
+  # SAMPLING:
+  # tail_sampling:
+  #   decision_wait: 3s
+  #   num_traces: 10000
+  #   expected_new_traces_per_sec: 1000
+  #   policies:
+  #     - name: erros-criticos-100-porcento
+  #       type: status_code
+  #       status_code: { status_codes: [ERROR] }
+  #     - name: lentos-100-porcento
+  #       type: latency
+  #       latency: { threshold_ms: 500 }
+  #     - name: rotineiros-amostragem-10-porcento
+  #       type: probabilistic
+  #       probabilistic: { sampling_percentage: 10.0 }
+
+# 3. CONNECTORS: Gera métricas RED (SpanMetrics) e Grafo de Serviços (ServiceGraph) a partir dos Spans!
+connectors:
+  spanmetrics:
+    namespace: traces_spanmetrics
+    metrics_flush_interval: 5s
+    histogram:
+      explicit:
+        buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2.5s, 5s]
+    dimensions:
+      - name: http.method
+      - name: http.status_code
+      - name: http.route
+      - name: operation.type
+    exemplars:
+      enabled: true
+
+  servicegraph:
+    latency_histogram_buckets: [10ms, 50ms, 100ms, 250ms, 500ms, 1s, 2s, 5s]
+    dimensions:
+      - http.method
+    store:
+      ttl: 2s
+      max_items: 1000
+
+# 4. EXPORTERS: Envia cada sinal para seu backend dedicado na Grafana Stack
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    enable_open_metrics: true
+    metric_expiration: 180m
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+
+# 5. SERVICE PIPELINES + TELEMETRIA INTERNA DE INFRAESTRUTURA
+service:
+  telemetry:
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo, spanmetrics, servicegraph]
+
+    metrics:
+      receivers: [otlp, spanmetrics, servicegraph]
+      processors: [batch]
+      exporters: [prometheus]
+
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/loki]

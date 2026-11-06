@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bank Account Simulator</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 1180px; margin: 24px auto; padding: 0 20px; background: #0f172a; color: #f8fafc; }
+    h1 { font-size: 1.5rem; margin-bottom: 4px; }
+    .sub { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
+    .layout { display: grid; grid-template-columns: 1fr 400px; gap: 24px; align-items: start; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .side-panel { border-left: 1px dashed #334155; padding-left: 24px; }
+    .side-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 10px; font-weight: 700; }
+    .card-incidents { background: #1e1b4b; border: 1px solid #6366f1; }
+    .card-ai { background: #0f2942; border: 1px solid #0284c7; }
+    .balance { font-size: 2rem; font-weight: 700; color: #38bdf8; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+    .col-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .col-btns button { width: 100%; text-align: left; }
+    input, textarea { padding: 8px 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 0.92rem; font-family: inherit; }
+    input { width: 120px; font-size: 1rem; }
+    textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 58px; margin-top: 8px; }
+    button { padding: 9px 14px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; color: #fff; transition: opacity 0.15s; }
+    button:hover { opacity: 0.9; }
+    .btn-dep { background: #10b981; }
+    .btn-wit { background: #f59e0b; }
+    .btn-ref { background: #3b82f6; }
+    .btn-start { background: #22c55e; flex: 1; }
+    .btn-stop { background: #ef4444; flex: 1; }
+    .btn-inc-warn { background: #d97706; }
+    .btn-inc-err { background: #dc2626; }
+    .btn-inc-net { background: #7c3aed; }
+    .btn-inc-iso { background: #0284c7; }
+    .btn-inc-ok { background: #475569; }
+    .btn-random { background: linear-gradient(135deg, #e11d48, #7c3aed); font-size: 0.95rem; font-weight: 700; padding: 12px 14px; text-align: center !important; }
+    .btn-random:hover { opacity: 0.95; }
+    .btn-ai { background: #0284c7; width: 100%; margin-top: 8px; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #334155; }
+    .nav-tabs { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav-tab { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 9px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.15s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .nav-tab:hover { color: #f8fafc; border-color: #475569; }
+    .nav-tab.active { background: #0284c7; color: #fff; border-color: #38bdf8; box-shadow: 0 0 15px rgba(2, 132, 199, 0.35); }
+    .sub-tabs { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; background: #1e293b; padding: 10px 14px; border-radius: 10px; border: 1px solid #334155; }
+    .sub-pill { background: #0f172a; color: #94a3b8; border: 1px solid #334155; padding: 8px 14px; border-radius: 6px; font-size: 0.84rem; font-weight: 600; cursor: pointer; }
+    .sub-pill.active { background: #1e3a8a; color: #e0f2fe; border-color: #3b82f6; }
+    .arch-slide { display: none; }
+    .arch-slide.active { display: block; }
+    .arch-layer { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; position: relative; }
+    .arch-layer-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #38bdf8; font-weight: 700; margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .arch-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .arch-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .arch-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .arch-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    @media (max-width: 960px) { .arch-grid-2, .arch-grid-3, .arch-grid-4, .arch-grid-5 { grid-template-columns: 1fr; } }
+    .arch-node { background: #0f172a; border: 1px solid #475569; border-radius: 8px; padding: 12px; text-align: center; }
+    .arch-node strong { display: block; font-size: 0.92rem; color: #f8fafc; margin-bottom: 4px; }
+    .arch-node .port { display: inline-block; background: #1e293b; color: #38bdf8; border: 1px solid #334155; padding: 2px 7px; border-radius: 4px; font-family: monospace; font-size: 0.74rem; margin-bottom: 6px; }
+    .arch-node p { margin: 4px 0 0 0; font-size: 0.78rem; color: #94a3b8; line-height: 1.35; }
+    .arch-arrow { text-align: center; color: #38bdf8; font-size: 0.8rem; font-weight: 700; margin: 4px 0; letter-spacing: 0.03em; }
+    .pill-list { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+    .mini-pill { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-family: monospace; }
+    .mermaid-wrap { background: #091120; border: 1px solid #334155; border-radius: 10px; padding: 16px; overflow: auto; text-align: left; position: relative; max-height: 75vh; cursor: grab; user-select: none; }
+    .mermaid-wrap.dragging { cursor: grabbing; }
+    .mermaid-wrap svg { display: block; width: 100%; max-width: 100%; height: auto; margin: 0 auto; }
+    .mermaid-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .legend-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 0.76rem; color: #cbd5e1; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .zoom-btns { display: flex; gap: 4px; }
+    .zoom-btns button { background: #1e293b; border: 1px solid #475569; padding: 4px 9px; font-size: 0.75rem; color: #e2e8f0; border-radius: 5px; }
+    .zoom-btns button:hover { background: #334155; }
+    .arch-card-trigger {
+      background: #1e293b;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 18px 24px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 520px;
+      transition: all 0.18s ease;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+    .arch-card-trigger:hover {
+      background: #26354d;
+      border-color: #60a5fa;
+      transform: translateY(-2px);
+    }
+    .arch-card-trigger.open {
+      background: #1e3a8a;
+      border-color: #38bdf8;
+    }
+    .arch-flow-panel {
+      display: none;
+      margin-top: 18px;
+      background: #0b1324;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .arch-flow-panel.open {
+      display: block;
+    }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; }
+    .on { background: #166534; color: #bbf7d0; }
+    .off { background: #7f1d1d; color: #fecaca; }
+    .warn { background: #92400e; color: #fde68a; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #334155; }
+    .msg { margin-top: 10px; font-size: 0.85rem; color: #cbd5e1; }
+    .ai-output { margin-top: 12px; padding: 16px; background: #091526; border: 1px solid #1e3a5f; border-radius: 8px; font-size: 0.88rem; line-height: 1.6; max-height: 540px; overflow-y: auto; color: #e2e8f0; display: none; }
+    .ai-output h1, .ai-output h2, .ai-output h3, .ai-output h4 { color: #38bdf8; margin: 14px 0 6px 0; font-size: 1rem; border-bottom: 1px solid #1e3a5f; padding-bottom: 4px; }
+    .ai-output h1:first-child, .ai-output h2:first-child, .ai-output h3:first-child { margin-top: 0; }
+    .ai-output p { margin: 6px 0; }
+    .ai-output ul, .ai-output ol { margin: 6px 0; padding-left: 20px; }
+    .ai-output li { margin-bottom: 4px; }
+    .ai-output code { background: #1e293b; color: #f472b6; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.84rem; }
+    .ai-output pre { background: #0f172a; padding: 10px; border-radius: 6px; overflow-x: auto; border: 1px solid #334155; }
+    .ai-output pre code { background: none; color: #cbd5e1; padding: 0; }
+    .ai-output strong { color: #f8fafc; }
+    .ai-output hr { border: none; border-top: 1px solid #1e3a5f; margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div>
+      <h1 style="margin:0;">🏦 Bank Account Simulator</h1>
+      <div class="sub" style="margin-bottom:0;">Operações Bancárias — Observabilidade End-to-End & Grafana Stack</div>
+    </div>
+    <div class="nav-tabs">
+      <a id="tab-btn-ops" href="#ops" class="nav-tab active" onclick="handleTabClick(event, 'ops')">🏦 Simulador & Operação ao Vivo</a>
+      <a id="tab-btn-arch" href="#arch" class="nav-tab" onclick="handleTabClick(event, 'arch')">🏛️ Arquitetura & Blueprint Visual</a>
+    </div>
+  </div>
+
+  <!-- ABA 1: SIMULADOR & OPERAÇÃO AO VIVO -->
+  <div id="view-ops" class="layout">
+    <!-- APLICAÇÃO PRINCIPAL (ESQUERDA) -->
+    <div>
+      <div class="card">
+        <div>Conta #1 (<span id="owner">Cliente Demo</span>)</div>
+        <div class="balance">R$ <span id="balance">---</span></div>
+        <div class="row">
+          <input type="number" id="amount" value="50" min="1" />
+          <button class="btn-dep" onclick="op('/deposit')">+ Depositar</button>
+          <button class="btn-wit" onclick="op('/withdraw')">- Sacar</button>
+          <button class="btn-ref" onclick="loadStatement()">↻ Atualizar</button>
+        </div>
+        <div class="msg" id="msg"></div>
+      </div>
+
+      <div class="card">
+        <strong>📜 Últimas 10 Transações</strong>
+        <table>
+          <thead><tr><th>ID</th><th>Tipo</th><th>Valor</th><th>Horário</th></tr></thead>
+          <tbody id="txs"></tbody>
+        </table>
+      </div>
+
+      <!-- ASSISTENTE DE IA GEMINI (DIAGNÓSTICO DE TELEMETRIA AO VIVO) -->
+      <div class="card card-ai">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>🤖 Assistente SRE (Google Gemini) — Análise de Logs, Traces & Métricas</strong>
+          <span class="badge" style="background:#0369a1; color:#e0f2fe;">Prometheus + Loki + Tempo</span>
+        </div>
+        <textarea id="ai-question" placeholder="Pergunte sobre lentidão, erros 5xx/4xx, trace_id ou saúde da aplicação...">Como está a saude da nossa aplicação? tem alguma causa raiz? se sim como resolvê-la?</textarea>
+        <button class="btn-ai" id="btn-ai" onclick="askGemini()">✨ Analisar Telemetria em Tempo Real com Gemini</button>
+        <div id="ai-output" class="ai-output"></div>
+      </div>
+    </div>
+
+    <!-- CONTROLES DE LABORATÓRIO / SIMULAÇÃO (LADO DIREITO, FORA DA APLICAÇÃO) -->
+    <div class="side-panel">
+      <div class="side-title">Controles do Laboratório</div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>⚙️ Gerador de Carga</strong>
+          <span id="lg-badge" class="badge">...</span>
+        </div>
+        <div class="row">
+          <button class="btn-start" onclick="toggleLoad('start')">▶️ Ligar</button>
+          <button class="btn-stop" onclick="toggleLoad('stop')">⏸️ Pausar</button>
+        </div>
+      </div>
+
+      <div class="card card-incidents">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+          <strong>🔥 Simulador de Incidentes (Chaos)</strong>
+          <span class="badge" style="background:#4338ca; color:#e0e7ff;">Modo Demonstração</span>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <span id="chaos-main-badge" class="badge on" style="display:block; text-align:center; padding:7px 10px; font-size:0.8rem;">
+            ✅ Ambiente Estável (Sem Incidentes Ativos)
+          </span>
+        </div>
+        <div class="col-btns">
+          <button class="btn-random" onclick="injectRandomChaos()">🎲 Forçar Incidente Aleatório (Caos Real)</button>
+          <button class="btn-inc-ok" style="text-align:center;" onclick="setChaos({ withdrawLatencyMs: 0, depositDbFailure: false, serviceCommunicationFailure: false, ledgerIsolatedFailure: false })">✅ Normalizar Tudo (Restaurar Saúde)</button>
+        </div>
+
+        <details style="margin-top: 14px; font-size: 0.82rem; color: #94a3b8; border-top: 1px dashed #4338ca; padding-top: 10px;">
+          <summary style="cursor: pointer; user-select: none; font-weight: 600; color: #cbd5e1;">⚙️ Controles Manuais & Gabarito (Avançado)</summary>
+          <div style="margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+            <span id="chaos-lat-badge" class="badge on">Latência /withdraw: Normal (0ms)</span>
+            <span id="chaos-db-badge" class="badge on">Banco /deposit: Normal</span>
+            <span id="chaos-net-badge" class="badge on">Comunicação entre Serviços: Normal</span>
+            <span id="chaos-iso-badge" class="badge on">Ledger /statement: Normal</span>
+          </div>
+          <div class="col-btns" style="margin-top: 8px;">
+            <button class="btn-inc-warn" style="font-size:0.8rem; padding:6px 10px;" onclick="setChaos({ withdrawLatencyMs: 2000 })">🐢 Incidente 1: Latência 2s no /withdraw</button>
+            <button class="btn-inc-err" style="font-size:0.8rem; padding:6px 10px;" onclick="setChaos({ depositDbFailure: true })">💥 Incidente 2: Queda do Banco (500) no /deposit</button>
+            <button class="btn-inc-net" style="font-size:0.8rem; padding:6px 10px;" onclick="setChaos({ serviceCommunicationFailure: true })">⚡ Incidente 3: Falha de Rede (502) no ledger</button>
+            <button class="btn-inc-iso" style="font-size:0.8rem; padding:6px 10px;" onclick="setChaos({ ledgerIsolatedFailure: true })">🛡️ Incidente 4: Erro 500 só no Ledger</button>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 2: ARQUITETURA & BLUEPRINT VISUAL -->
+  <div id="view-arch" style="display:none; padding-top: 10px;">
+    <!-- CAIXA 1: ARQUITETURA DA APLICAÇÃO -->
+    <div id="card-app-flow" class="arch-card-trigger" onclick="toggleFlowBox('app')">
+      <div>
+        <div style="font-size: 1.05rem; font-weight: 700; color: #f8fafc;">🏦 Arquitetura da Aplicação (bank-simulator)</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Clique para abrir o fluxograma de funcionamento da aplicação</div>
+      </div>
+      <span id="arrow-app-flow" style="font-size: 1.2rem; color: #38bdf8; font-weight: 700;">▼</span>
+    </div>
+
+    <div id="panel-app-flow" class="arch-flow-panel">
+      <div class="mermaid-toolbar" style="margin-bottom: 14px;">
+        <strong style="color: #38bdf8; font-size: 0.92rem;">Fluxo de Funcionamento — Bank Simulator</strong>
+        <div class="zoom-btns">
+          <button onclick="zoomMermaid('m-app-only', -0.15)">🔍 -</button>
+          <button onclick="zoomMermaid('m-app-only', 0)">100%</button>
+          <button onclick="zoomMermaid('m-app-only', 0.15)">🔍 +</button>
+        </div>
+      </div>
+      <div id="m-app-only" class="mermaid-wrap" style="background: #0f172a; border: none; padding: 10px;"></div>
+    </div>
+
+    <!-- CAIXA 2: FLUXO DE OBSERVABILIDADE -->
+    <div id="card-obs-flow" class="arch-card-trigger" style="margin-top: 16px; border-color: #818cf8;" onclick="toggleFlowBox('obs')">
+      <div>
+        <div style="font-size: 1.05rem; font-weight: 700; color: #f8fafc;">🔭 Fluxo de Observabilidade (OpenTelemetry & Grafana Stack)</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Clique para abrir o fluxograma de coleta, processamento e correlação dos 3 pilares</div>
+      </div>
+      <span id="arrow-obs-flow" style="font-size: 1.2rem; color: #818cf8; font-weight: 700;">▼</span>
+    </div>
+
+    <div id="panel-obs-flow" class="arch-flow-panel">
+      <div class="mermaid-toolbar" style="margin-bottom: 14px;">
+        <strong style="color: #818cf8; font-size: 0.92rem;">Fluxo de Telemetria — Coleta OTLP, SpanMetrics e 3 Pilares</strong>
+        <div class="zoom-btns">
+          <button onclick="zoomMermaid('m-obs-only', -0.15)">🔍 -</button>
+          <button onclick="zoomMermaid('m-obs-only', 0)">100%</button>
+          <button onclick="zoomMermaid('m-obs-only', 0.15)">🔍 +</button>
+        </div>
+      </div>
+      <div id="m-obs-only" class="mermaid-wrap" style="background: #0f172a; border: none; padding: 10px;"></div>
+    </div>
+
+    <!-- CAIXA 3: CASO FIZÉSSEMOS COM GRAFANA CLOUD -->
+    <div id="card-cloud-flow" class="arch-card-trigger" style="margin-top: 16px; border-color: #f59e0b;" onclick="toggleFlowBox('cloud')">
+      <div>
+        <div style="font-size: 1.05rem; font-weight: 700; color: #f8fafc;">☁️ Caso Fizéssemos com Grafana Cloud</div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Clique para abrir o fluxograma de exportação OTLP para o Grafana Cloud (SaaS)</div>
+      </div>
+      <span id="arrow-cloud-flow" style="font-size: 1.2rem; color: #f59e0b; font-weight: 700;">▼</span>
+    </div>
+
+    <div id="panel-cloud-flow" class="arch-flow-panel">
+      <div class="mermaid-toolbar" style="margin-bottom: 14px;">
+        <strong style="color: #f59e0b; font-size: 0.92rem;">Topologia SaaS — Aplicações Intactas + Exportação OTLP para Grafana Cloud</strong>
+        <div class="zoom-btns">
+          <button onclick="zoomMermaid('m-cloud-only', -0.15)">🔍 -</button>
+          <button onclick="zoomMermaid('m-cloud-only', 0)">100%</button>
+          <button onclick="zoomMermaid('m-cloud-only', 0.15)">🔍 +</button>
+        </div>
+      </div>
+      <div id="m-cloud-only" class="mermaid-wrap" style="background: #0f172a; border: none; padding: 10px;"></div>
+    </div>
+  </div>
+
+  <script>
+    async function loadStatement() {
+      try {
+        const res = await fetch('/statement?accountId=1');
+        const data = await res.json();
+        if (data.account) {
+          document.getElementById('owner').textContent = data.account.owner;
+          document.getElementById('balance').textContent = Number(data.account.balance).toFixed(2);
+          document.getElementById('txs').innerHTML = (data.transactions || []).map(t => `
+            <tr>
+              <td>#${t.id}</td>
+              <td>${t.type === 'deposit' ? '🟢 Depósito' : '🟠 Saque'}</td>
+              <td>R$ ${Number(t.amount).toFixed(2)}</td>
+              <td>${new Date(t.created_at).toLocaleTimeString()}</td>
+            </tr>
+          `).join('');
+        }
+        if (data.degraded) {
+          document.getElementById('msg').innerHTML = '<span style="color:#38bdf8; font-weight:600;">🛡️ Resiliência Ativa: ledger-service falhou com 500, gateway ativou com Fallback extrato (Cache) sem quebrar o usuário!</span>';
+        }
+      } catch (e) {
+        document.getElementById('msg').textContent = 'Erro ao carregar extrato: ' + e.message;
+      }
+      loadStatus();
+      loadChaosStatus();
+    }
+
+    async function op(path) {
+      const amount = Number(document.getElementById('amount').value);
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: 1, amount })
+      });
+      const data = await res.json();
+      document.getElementById('msg').textContent = res.ok
+        ? `✅ Sucesso: ${data.operation} de R$ ${amount}`
+        : `❌ Erro (${res.status}): ${data.error}`;
+      loadStatement();
+    }
+
+    async function loadStatus() {
+      try {
+        const res = await fetch('/load-gen/status');
+        const data = await res.json();
+        const badge = document.getElementById('lg-badge');
+        badge.textContent = data.running ? 'ATIVO' : 'PAUSADO';
+        badge.className = 'badge ' + (data.running ? 'on' : 'off');
+      } catch {
+        const badge = document.getElementById('lg-badge');
+        badge.textContent = 'OFFLINE';
+        badge.className = 'badge off';
+      }
+    }
+
+    async function toggleLoad(action) {
+      await fetch('/load-gen/' + action, { method: 'POST' });
+      loadStatus();
+    }
+
+    async function loadChaosStatus() {
+      try {
+        const res = await fetch('/chaos/status');
+        const data = await res.json();
+        const latBadge = document.getElementById('chaos-lat-badge');
+        const dbBadge = document.getElementById('chaos-db-badge');
+        const netBadge = document.getElementById('chaos-net-badge');
+
+        if (data.withdrawLatencyMs > 0) {
+          latBadge.textContent = `🐢 Latência /withdraw: ${data.withdrawLatencyMs}ms`;
+          latBadge.className = 'badge warn';
+        } else {
+          latBadge.textContent = 'Latência /withdraw: Normal (0ms)';
+          latBadge.className = 'badge on';
+        }
+
+        if (data.depositDbFailure) {
+          dbBadge.textContent = '💥 Banco /deposit: ERRO 500 ATIVO';
+          dbBadge.className = 'badge off';
+        } else {
+          dbBadge.textContent = 'Banco /deposit: Normal';
+          dbBadge.className = 'badge on';
+        }
+
+        if (data.serviceCommunicationFailure) {
+          netBadge.textContent = '⚡ Rede /ledger: ERRO 502 ATIVO';
+          netBadge.className = 'badge off';
+        } else {
+          netBadge.textContent = 'Comunicação entre Serviços: Normal';
+          netBadge.className = 'badge on';
+        }
+
+        const isoBadge = document.getElementById('chaos-iso-badge');
+        if (data.ledgerIsolatedFailure) {
+          isoBadge.textContent = '🛡️ Ledger 500: ATIVO (Fallback 200 no Gateway)';
+          isoBadge.className = 'badge warn';
+        } else {
+          isoBadge.textContent = 'Ledger /statement: Normal';
+          isoBadge.className = 'badge on';
+        }
+
+        const hasIncident = (data.withdrawLatencyMs > 0) || data.depositDbFailure || data.serviceCommunicationFailure || data.ledgerIsolatedFailure;
+        const mainBadge = document.getElementById('chaos-main-badge');
+        if (mainBadge) {
+          if (hasIncident) {
+            mainBadge.textContent = '🔥 Incidente Injetado! Investigue no Grafana';
+            mainBadge.className = 'badge off';
+          } else {
+            mainBadge.textContent = '✅ Ambiente Estável (Sem Incidentes Ativos)';
+            mainBadge.className = 'badge on';
+          }
+        }
+      } catch (_) {}
+    }
+
+    async function injectRandomChaos() {
+      await fetch('/chaos/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ withdrawLatencyMs: 0, depositDbFailure: false, serviceCommunicationFailure: false, ledgerIsolatedFailure: false })
+      });
+
+      const incidents = [
+        { withdrawLatencyMs: 2000 },
+        { depositDbFailure: true },
+        { serviceCommunicationFailure: true },
+        { ledgerIsolatedFailure: true },
+      ];
+      const chosen = incidents[Math.floor(Math.random() * incidents.length)];
+      await setChaos(chosen);
+    }
+
+    async function setChaos(payload) {
+      await fetch('/chaos/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      loadChaosStatus();
+    }
+
+    function renderMarkdown(md) {
+      if (!md) return '';
+      let html = md
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\$\\rightarrow\$/g, '→')
+        .replace(/\\rightarrow/g, '→');
+
+      // Code blocks
+      html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      // Bold & Italic
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+
+      const lines = html.split('\n');
+      const out = [];
+      let inList = false;
+
+      for (let line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          continue;
+        }
+        if (/^---+$/.test(trimmed)) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<hr/>');
+        } else if (trimmed.startsWith('#### ')) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push(`<h4>${trimmed.slice(5)}</h4>`);
+        } else if (trimmed.startsWith('### ')) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push(`<h3>${trimmed.slice(4)}</h3>`);
+        } else if (trimmed.startsWith('## ')) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push(`<h2>${trimmed.slice(3)}</h2>`);
+        } else if (trimmed.startsWith('# ')) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push(`<h1>${trimmed.slice(2)}</h1>`);
+        } else if (/^(\*|-)\s+/.test(trimmed)) {
+          if (!inList) { out.push('<ul>'); inList = true; }
+          out.push(`<li>${trimmed.replace(/^(\*|-)\s+/, '')}</li>`);
+        } else if (/^\d+\.\s+/.test(trimmed)) {
+          if (!inList) { out.push('<ul>'); inList = true; }
+          out.push(`<li>${trimmed}</li>`);
+        } else {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push(`<p>${trimmed}</p>`);
+        }
+      }
+      if (inList) out.push('</ul>');
+      return out.join('');
+    }
+
+    async function askGemini() {
+      const btn = document.getElementById('btn-ai');
+      const out = document.getElementById('ai-output');
+      const question = document.getElementById('ai-question').value;
+      btn.disabled = true;
+      btn.textContent = '⏳ Coletando Prometheus, Loki e Tempo e consultando Gemini...';
+      out.style.display = 'block';
+      out.innerHTML = '<em>Consultando APIs de telemetria em tempo real...</em>';
+
+      try {
+        const res = await fetch('/ai/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          out.innerHTML = renderMarkdown(`### ⚠️ ${data.error}\n\n${data.hint || ''}\n\n\`\`\`json\n${JSON.stringify(data.telemetrySnapshot, null, 2)}\n\`\`\``);
+        } else {
+          out.innerHTML = renderMarkdown(data.answer) + `<div style="margin-top:10px; font-size:0.75rem; color:#64748b; text-align:right;">Modelo: <code>${data.model}</code></div>`;
+        }
+      } catch (e) {
+        out.textContent = 'Erro ao chamar /ai/analyze: ' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✨ Analisar Telemetria em Tempo Real com Gemini';
+      }
+    }
+
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis', nodeSpacing: 45, rankSpacing: 55 }
+      });
+    }
+
+    const APP_FLOW_DIAGRAM = `flowchart LR
+      USR(["👤 Usuário (Navegador)<br/>ou ⚙️ Gerador de Carga (:3002)"])
+
+      API["🌐 account-api (:3000)<br/>Porta de Entrada (Gateway)"]
+
+      LED["📒 ledger-service (:3001)<br/>Motor Contábil (Regras do Banco)"]
+
+      OP_DEP["➕ Depósito (/deposit)<br/>Soma valor ao saldo"]
+      OP_WIT{"➖ Saque (/withdraw)<br/>Tem saldo suficiente?"}
+      OP_STM["📄 Extrato (/statement)<br/>Busca saldo + 10 transações"]
+
+      ERR_400(["⚠️ Recusa Saque (HTTP 400)<br/>Saldo Insuficiente"])
+
+      DB[("🐘 PostgreSQL (:5432)<br/>Tabelas: accounts & transactions")]
+
+      USR -->|"1. Pede Depósito, Saque ou Extrato"| API
+      API -->|"2. Encaminha operação via HTTP"| LED
+
+      LED --> OP_DEP
+      LED --> OP_WIT
+      LED --> OP_STM
+
+      OP_DEP -->|"Atualiza Saldo + Grava Histórico"| DB
+      OP_WIT -->|"Sim"| DB
+      OP_WIT -->|"Não"| ERR_400
+      OP_STM -->|"Lê Conta e Histórico"| DB
+
+      classDef user fill:#0c4a6e,stroke:#38bdf8,stroke-width:2px,color:#fff;
+      classDef api fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#fff;
+      classDef ledger fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#fff;
+      classDef action fill:#1e293b,stroke:#94a3b8,stroke-width:2px,color:#fff;
+      classDef warn fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fff;
+      classDef db fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#fff;
+
+      class USR user;
+      class API api;
+      class LED ledger;
+      class OP_DEP,OP_WIT,OP_STM action;
+      class ERR_400 warn;
+      class DB db;`;
+
+    const OBS_FLOW_DIAGRAM = `flowchart LR
+      SVC["📦 account-api & ledger-service<br/>OpenTelemetry SDK + Pino JSON<br/>(Propaga trace_id via W3C traceparent)"]
+
+      OTEL{{"🔀 OpenTelemetry Collector<br/>Recebe tudo via OTLP (:4318)"}}
+
+      SM["⚙️ Conector SpanMetrics<br/>Extrai métricas RED + Exemplars<br/>diretamente dos Spans"]
+      PROC["🧹 Processador Batch & Labels<br/>Agrupa lotes e indexa service_name"]
+
+      TEMPO[("⏱️ Grafana Tempo (:3200)<br/>Armazena Traces (Waterfall)")]
+      PROM[("📈 Prometheus (:9090)<br/>Armazena Métricas (RED, Apdex, Infra)")]
+      LOKI[("📜 Grafana Loki (:3100)<br/>Armazena Logs JSON c/ trace_id")]
+
+      GRAF(["📊 Grafana (:3003)<br/>Dashboards, Alertas & Correlação<br/>(Métrica ↔ Trace ↔ Log)"])
+      AI(["🤖 Assistente SRE (Gemini)<br/>Cruza os 3 pilares ao vivo"])
+
+      SVC -->|"Envia Traces, Métricas e Logs"| OTEL
+      OTEL --> SM
+      OTEL --> PROC
+
+      PROC -->|"Spans (OTLP gRPC)"| TEMPO
+      SM -->|"Scrape :8889"| PROM
+      PROC -->|"Métricas de Runtime"| PROM
+      PROC -->|"Logs JSON (OTLP HTTP)"| LOKI
+
+      TEMPO & PROM & LOKI --> GRAF
+      TEMPO & PROM & LOKI -.->|"Snapshot API"| AI
+
+      classDef svc fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#fff;
+      classDef col fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#fff;
+      classDef proc fill:#1e293b,stroke:#94a3b8,stroke-width:2px,color:#fff;
+      classDef tempo fill:#7c2d12,stroke:#fb923c,stroke-width:2px,color:#fff;
+      classDef prom fill:#7f1d1d,stroke:#f87171,stroke-width:2px,color:#fff;
+      classDef loki fill:#713f12,stroke:#facc15,stroke-width:2px,color:#fff;
+      classDef viz fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#fff;
+      classDef ai fill:#0c4a6e,stroke:#38bdf8,stroke-width:2px,color:#fff;
+
+      class SVC svc;
+      class OTEL col;
+      class SM,PROC proc;
+      class TEMPO tempo;
+      class PROM prom;
+      class LOKI loki;
+      class GRAF viz;
+      class AI ai;`;
+
+    const CLOUD_FLOW_DIAGRAM = `flowchart LR
+      subgraph INT["🏢 NOSSA INFRAESTRUTURA (VPC BANCÁRIA LOCAL / K8S)"]
+        SVC["🏦 account-api & ledger-service<br/>(ZERO ALTERAÇÃO DE CÓDIGO!)<br/>SDK OpenTelemetry nativo"]
+        PG[("🐘 PostgreSQL (:5432)<br/>Tabelas accounts & transactions")]
+        COL{{"🔀 OpenTelemetry Collector / Grafana Alloy<br/>Recebe via OTLP local (:4318)<br/>1. Mascaramento PII/LGPD em trânsito<br/>2. Conector SpanMetrics (Métricas RED)"}}
+      end
+
+      subgraph CLD["☁️ GRAFANA CLOUD (SaaS TOTALMENTE GERENCIADO)"]
+        GW["🌐 Endpoint Único OTLP Gateway HTTPS<br/>(com Basic Auth / Token)"]
+        MIMIR[("📈 Grafana Mimir<br/>Métricas RED & SLO")]
+        LOKICLD[("📜 Grafana Loki Cloud<br/>Logs JSON Indexados")]
+        TEMPOCLD[("⏱️ Grafana Tempo Cloud<br/>Traces Distribuídos")]
+        GRAFCLD["📊 Instância Grafana Cloud SaaS<br/>(aurorapagamentos.grafana.net)"]
+        SIFT["🤖 Grafana Sift / IRM OnCall<br/>IA e Resposta a Incidentes Nativas"]
+      end
+
+      SVC -->|"SQL ACID"| PG
+      SVC -->|"OTLP :4318 (Intacto!)"| COL
+
+      COL ==>|"1 Linha YAML: exporters: [otlphttp/grafana_cloud]<br/>Túnel TLS Seguro com API Token"| GW
+
+      GW --> MIMIR & LOKICLD & TEMPOCLD
+      MIMIR & LOKICLD & TEMPOCLD --> GRAFCLD
+      TEMPOCLD & LOKICLD -.-> SIFT
+
+      classDef int fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#fff;
+      classDef db fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#fff;
+      classDef col fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#fff;
+      classDef cldgw fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fff;
+      classDef cldstore fill:#431407,stroke:#fb923c,stroke-width:2px,color:#fff;
+      classDef cldviz fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff;
+
+      class SVC int;
+      class PG db;
+      class COL col;
+      class GW cldgw;
+      class MIMIR,LOKICLD,TEMPOCLD cldstore;
+      class GRAFCLD,SIFT cldviz;`;
+
+    const mermaidZoomState = {};
+
+    async function toggleFlowBox(type) {
+      const cardMap = { app: 'card-app-flow', obs: 'card-obs-flow', cloud: 'card-cloud-flow' };
+      const panelMap = { app: 'panel-app-flow', obs: 'panel-obs-flow', cloud: 'panel-cloud-flow' };
+      const arrowMap = { app: 'arrow-app-flow', obs: 'arrow-obs-flow', cloud: 'arrow-cloud-flow' };
+      const boxMap = { app: 'm-app-only', obs: 'm-obs-only', cloud: 'm-cloud-only' };
+      const diagMap = { app: APP_FLOW_DIAGRAM, obs: OBS_FLOW_DIAGRAM, cloud: CLOUD_FLOW_DIAGRAM };
+
+      const card = document.getElementById(cardMap[type]);
+      const panel = document.getElementById(panelMap[type]);
+      const arrow = document.getElementById(arrowMap[type]);
+      const box = document.getElementById(boxMap[type]);
+      const diagram = diagMap[type];
+
+      const isOpen = panel.classList.toggle('open');
+      card.classList.toggle('open', isOpen);
+      arrow.textContent = isOpen ? '▲' : '▼';
+
+      if (isOpen && box && box.getAttribute('data-rendered') !== 'true' && window.mermaid) {
+        try {
+          const { svg } = await mermaid.render('svg-' + type + '-' + Date.now(), diagram);
+          box.innerHTML = svg;
+          box.setAttribute('data-rendered', 'true');
+        } catch (err) {
+          box.innerHTML = '<pre style="color:#f87171;">Erro ao gerar fluxograma: ' + err.message + '</pre>';
+        }
+      }
+    }
+
+    function zoomMermaid(boxId, delta) {
+      const box = document.getElementById(boxId);
+      if (!box) return;
+      const svg = box.querySelector('svg');
+      if (!svg) return;
+      if (delta === 0) {
+        mermaidZoomState[boxId] = 1;
+      } else {
+        const cur = mermaidZoomState[boxId] || 1;
+        mermaidZoomState[boxId] = Math.min(2.5, Math.max(0.6, +(cur + delta).toFixed(2)));
+      }
+      const scale = mermaidZoomState[boxId];
+      const pct = Math.round(scale * 100) + '%';
+      svg.style.transform = 'none';
+      svg.style.maxWidth = scale > 1 ? 'none' : '100%';
+      svg.style.width = pct;
+      svg.style.margin = scale > 1 ? '0' : '0 auto';
+    }
+
+    // Permite arrastar o fluxograma com o mouse (Pan) quando ampliado
+    document.querySelectorAll('.mermaid-wrap').forEach((wrap) => {
+      let isDown = false;
+      let startX = 0, startY = 0, scrollL = 0, scrollT = 0;
+      wrap.addEventListener('mousedown', (e) => {
+        isDown = true;
+        wrap.classList.add('dragging');
+        startX = e.pageX - wrap.offsetLeft;
+        startY = e.pageY - wrap.offsetTop;
+        scrollL = wrap.scrollLeft;
+        scrollT = wrap.scrollTop;
+      });
+      wrap.addEventListener('mouseleave', () => { isDown = false; wrap.classList.remove('dragging'); });
+      wrap.addEventListener('mouseup', () => { isDown = false; wrap.classList.remove('dragging'); });
+      wrap.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - wrap.offsetLeft;
+        const y = e.pageY - wrap.offsetTop;
+        wrap.scrollLeft = scrollL - (x - startX);
+        wrap.scrollTop = scrollT - (y - startY);
+      });
+    });
+
+    function handleTabClick(e, tab) {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+      e.preventDefault();
+      switchMainTab(tab);
+      history.replaceState(null, '', '#' + tab);
+    }
+
+    function switchMainTab(tab) {
+      const isArch = tab === 'arch';
+      document.getElementById('view-ops').style.display = isArch ? 'none' : 'grid';
+      document.getElementById('view-arch').style.display = isArch ? 'block' : 'none';
+      document.getElementById('tab-btn-ops').classList.toggle('active', !isArch);
+      document.getElementById('tab-btn-arch').classList.toggle('active', isArch);
+    }
+
+    if (window.location.hash === '#arch' || window.location.search.includes('arch')) {
+      switchMainTab('arch');
+    }
+    window.addEventListener('hashchange', () => {
+      if (window.location.hash === '#arch') switchMainTab('arch');
+      else if (window.location.hash === '#ops') switchMainTab('ops');
+    });
+
+    loadStatement();
+    loadStatus();
+    loadChaosStatus();
+  </script>
+</body>
+</html>

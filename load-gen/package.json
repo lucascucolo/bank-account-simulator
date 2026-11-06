@@ -1,0 +1,13 @@
+{
+  "name": "load-gen",
+  "version": "1.0.0",
+  "description": "Gerador de carga continua com botao liga/desliga via HTTP e teclado",
+  "main": "load-gen.js",
+  "scripts": {
+    "start": "node load-gen.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
+

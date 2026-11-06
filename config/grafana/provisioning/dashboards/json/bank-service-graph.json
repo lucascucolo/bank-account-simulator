@@ -1,0 +1,76 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "\ud83d\udcca Voltar para Dashboard RED Principal",
+      "tooltip": "Abre o dashboard RED e Apdex",
+      "type": "link",
+      "url": "/d/bank-red-observability"
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 20,
+      "title": "\ud83d\uddfa\ufe0f Service Map & Topologia de Comunica\u00e7\u00e3o (Node Graph)",
+      "type": "nodeGraph",
+      "gridPos": {
+        "h": 20,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "options": {
+        "layoutAlgorithm": "layered",
+        "zoomMode": "cooperative",
+        "nodes": {},
+        "edges": {}
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "serviceMap",
+          "serviceMapQuery": "{}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": [
+    "bank",
+    "topology",
+    "servicegraph",
+    "mesh"
+  ],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "\ud83d\uddfa\ufe0f Service Graph & Topologia (Laborat\u00f3rio)",
+  "uid": "bank-service-graph",
+  "version": 1,
+  "weekStart": ""
+}
